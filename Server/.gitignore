@@ -14,3 +14,4 @@
 
 //ignore the vscode files
 .vscode/
+/generated/prisma

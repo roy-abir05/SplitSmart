@@ -43,5 +43,3 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT,() => {
     console.log('The Backend Server is Listening at Port Number ',PORT);
 });
-
-// connect to postgress sql db

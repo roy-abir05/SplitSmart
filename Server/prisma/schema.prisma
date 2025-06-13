@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id         Int       @id @default(autoincrement())
+  first_name String
+  last_name  String?
+  email      String    @unique
+  upi_id     String?   @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+
+  groups                       groups[]        @relation("GroupCreator")
+  group_members                group_members[]
+  payer_transactions           transactions[]  @relation("Payer")
+  receiver_transactions        transactions[]  @relation("Receiver")
+  debtsOwed                    debts[]         @relation("DebtPayer")
+  debtsReceivable              debts[]         @relation("DebtReceiver")
+  transaction_splits           transaction_splits[]
+  transaction_split_entries    transaction_split_entries[]
+}
+
+model groups {
+  id             Int             @id @default(autoincrement())
+  name           String
+  description    String?
+  created_by     Int
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @default(now())
+
+  users          users           @relation("GroupCreator", fields: [created_by], references: [id])
+  group_members  group_members[]
+  transactions   transactions[]
+  debts          debts[]
+}
+
+model group_members {
+  group_id  Int
+  user_id   Int
+  joined_at DateTime @default(now())
+
+  groups groups @relation(fields: [group_id], references: [id])
+  users  users  @relation(fields: [user_id], references: [id])
+
+  @@id([group_id, user_id])
+}
+
+enum transaction_type {
+  expense
+  settlement
+}
+
+model transactions {
+  id            Int         @id @default(autoincrement())
+  group_id      Int
+  payer_id      Int
+  receiver_id   Int?
+  amount        Decimal
+  description   String?
+  type          transaction_type @default(expense)
+  completed_at  DateTime    @default(now())
+
+  group         groups      @relation(fields: [group_id], references: [id])
+  payer         users       @relation("Payer", fields: [payer_id], references: [id])
+  receiver      users?      @relation("Receiver", fields: [receiver_id], references: [id])
+
+  incurred_debts            debts[]         @relation("IncurredTxn")
+  settled_debts             debts[]         @relation("SettledTxn")
+  transaction_splits        transaction_splits[]
+}
+
+model debts {
+  id                        Int       @id @default(autoincrement())
+  group_id                  Int
+  payer_id                  Int
+  receiver_id               Int
+  amount                    Decimal
+  settled                   Boolean   @default(false)
+  incurred_transaction_id   Int
+  settled_transaction_id    Int?
+  incurred_at               DateTime  @default(now())
+  settled_at                DateTime?
+
+  group       groups        @relation(fields: [group_id], references: [id])
+  payer       users         @relation("DebtPayer", fields: [payer_id], references: [id])
+  receiver    users         @relation("DebtReceiver", fields: [receiver_id], references: [id])
+  incurred_transaction transactions @relation("IncurredTxn", fields: [incurred_transaction_id], references: [id])
+  settled_transaction  transactions? @relation("SettledTxn", fields: [settled_transaction_id], references: [id])
+}
+
+model transaction_splits {
+  id              Int         @id @default(autoincrement())
+  payer_id        Int
+  transaction_id  Int
+  total_amount    Decimal
+  embedding       Bytes? // pgvector workaround
+  created_at      DateTime @default(now())
+
+  payer           users       @relation(fields: [payer_id], references: [id])
+  transaction     transactions @relation(fields: [transaction_id], references: [id])
+  transaction_split_entries transaction_split_entries[]
+}
+
+model transaction_split_entries {
+  id                   Int      @id @default(autoincrement())
+  transaction_split_id Int
+  user_id              Int
+  amount               Decimal
+  created_at           DateTime @default(now())
+
+  transaction_split transaction_splits @relation(fields: [transaction_split_id], references: [id])
+  user              users              @relation(fields: [user_id], references: [id])
+
+  @@unique([transaction_split_id, user_id])
+}
