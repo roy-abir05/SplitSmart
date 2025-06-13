@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "start": "node index.js",
+    "dev":"nodemon index.js"
+  },
   "dependencies": {
     "@prisma/client": "^6.9.0",
     "cookie-parser": "^1.4.7",
@@ -6,7 +10,8 @@
     "decimal.js": "^10.5.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "express-fileupload": "^1.5.1"
+    "express-fileupload": "^1.5.1",
+    "nodemon": "^3.1.10"
   },
   "devDependencies": {
     "prisma": "^6.9.0"
